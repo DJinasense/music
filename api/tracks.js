@@ -10,6 +10,8 @@ export default async function handler(req, res) {
   try {
     if (req.method === 'GET') {
       const { tracks } = await readManifest();
+      // Briefly cache the public list at the edge; admin requests add ?fresh=… to skip it
+      if (!req.query.fresh) res.setHeader('Cache-Control', 'public, s-maxage=15, stale-while-revalidate=60');
       return res.status(200).json(tracks.map(publicTrack));
     }
 
@@ -35,7 +37,14 @@ export default async function handler(req, res) {
         coverPath: coverPath || null,
         createdAt: new Date().toISOString(),
       };
-      const tracks = await mutateTracks((list) => [...list, track]);
+      let tracks;
+      try {
+        tracks = await mutateTracks((list) => [...list, track]);
+      } catch (err) {
+        // Don't leave the just-uploaded files behind if publishing failed
+        await del([audioPath, coverPath].filter(Boolean)).catch(() => {});
+        throw err;
+      }
       return res.status(200).json(tracks.map(publicTrack));
     }
 

@@ -1,4 +1,4 @@
-import { get, put, BlobPreconditionFailedError } from '@vercel/blob';
+import { get, put, list, BlobPreconditionFailedError } from '@vercel/blob';
 import { sign } from './auth.js';
 
 const MANIFEST = 'data/tracks.json';
@@ -7,7 +7,9 @@ export async function readManifest() {
   const result = await get(MANIFEST, { access: 'private', useCache: false });
   if (!result || result.statusCode !== 200) return { tracks: [], etag: null };
   const text = await new Response(result.stream).text();
-  return { tracks: JSON.parse(text), etag: result.blob.etag };
+  // Reads can come back with a weak ETag (W/"…") once the file is compressed in
+  // transit; conditional writes only accept the strong form.
+  return { tracks: JSON.parse(text), etag: result.blob.etag.replace(/^W\//, '') };
 }
 
 async function writeManifest(tracks, etag) {
@@ -52,4 +54,26 @@ export function youtubeId(url) {
   if (!url) return null;
   const m = String(url).match(/(?:youtu\.be\/|v\/|u\/\w\/|embed\/|shorts\/|watch\?v=|&v=)([A-Za-z0-9_-]{11})/);
   return m ? m[1] : null;
+}
+
+// Files in storage that no track points at (e.g. from an interrupted upload).
+// Anything newer than `graceMs` is left alone in case an upload is still being published.
+export async function storageReport(graceMs = 5 * 60 * 1000) {
+  const { tracks } = await readManifest();
+  const used = new Set(tracks.flatMap((t) => [t.audioPath, t.coverPath]).filter(Boolean));
+  let cursor, blobs = [];
+  do {
+    const page = await list({ cursor, limit: 1000 });
+    blobs = blobs.concat(page.blobs);
+    cursor = page.hasMore ? page.cursor : undefined;
+  } while (cursor);
+  const cutoff = Date.now() - graceMs;
+  const orphans = blobs.filter((b) =>
+    /^(audio|covers)\//.test(b.pathname) && !used.has(b.pathname) && new Date(b.uploadedAt).getTime() < cutoff);
+  return {
+    usedBytes: blobs.reduce((s, b) => s + b.size, 0),
+    fileCount: blobs.length,
+    orphans,
+    orphanBytes: orphans.reduce((s, b) => s + b.size, 0),
+  };
 }

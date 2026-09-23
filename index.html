@@ -14,7 +14,7 @@
     <style>
         :root {
             --bg: #02080c;
-            --glass: rgba(10, 26, 34, 0.42);
+            --glass: rgba(8, 22, 30, 0.62);
             --glass-hi: rgba(255, 255, 255, 0.06);
             --glass-line: rgba(255, 255, 255, 0.10);
             --line: rgba(255, 255, 255, 0.12);
@@ -115,30 +115,33 @@
         /* ---------- The player: compact, landscape, glass ---------- */
         .player {
             width: 100%;
-            max-width: 540px;
-            background: linear-gradient(160deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.015) 45%), var(--glass);
-            backdrop-filter: blur(18px) saturate(150%);
-            -webkit-backdrop-filter: blur(18px) saturate(150%);
+            max-width: 700px;
+            background: linear-gradient(160deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02) 45%), var(--glass);
+            backdrop-filter: blur(26px) saturate(160%);
+            -webkit-backdrop-filter: blur(26px) saturate(160%);
             border: 1px solid var(--glass-line);
-            border-radius: 16px;
-            padding: 14px;
+            border-radius: 18px;
+            padding: 20px;
+            /* --beat (0–1) is set from the audio analyser; the rim glows on each kick */
             box-shadow:
-                inset 0 1px 0 rgba(255, 255, 255, 0.10),
-                0 24px 60px rgba(0, 0, 0, 0.45);
+                inset 0 1px 0 rgba(255, 255, 255, 0.12),
+                0 0 calc(10px + 40px * var(--beat, 0)) rgba(0, 230, 153, calc(0.06 + 0.22 * var(--beat, 0))),
+                0 30px 70px rgba(0, 0, 0, 0.5);
+            border-color: rgba(0, 230, 153, calc(0.10 + 0.35 * var(--beat, 0)));
         }
 
         .deck {
             display: flex;
-            gap: 14px;
+            gap: 20px;
             align-items: stretch;
         }
 
         .art {
             position: relative;
-            width: 118px;
-            height: 118px;
+            width: 176px;
+            height: 176px;
             flex-shrink: 0;
-            border-radius: 10px;
+            border-radius: 12px;
             overflow: hidden;
             background: linear-gradient(145deg, rgba(13, 42, 51, 0.8), rgba(7, 19, 25, 0.8));
             box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45);
@@ -213,7 +216,7 @@
 
         .title {
             font-family: 'Space Grotesk', sans-serif;
-            font-size: 1.05rem;
+            font-size: 1.45rem;
             font-weight: 700;
             line-height: 1.25;
             white-space: nowrap;
@@ -221,7 +224,7 @@
             text-overflow: ellipsis;
         }
 
-        .artist { color: var(--muted); font-size: 0.82rem; }
+        .artist { color: var(--muted); font-size: 0.95rem; margin-top: 2px; }
 
         .video-btn {
             flex-shrink: 0;
@@ -288,7 +291,7 @@
             display: flex;
             justify-content: space-between;
             color: var(--muted);
-            font-size: 0.7rem;
+            font-size: 0.76rem;
             font-variant-numeric: tabular-nums;
         }
 
@@ -300,8 +303,8 @@
         }
 
         .ctrl {
-            width: 34px;
-            height: 34px;
+            width: 40px;
+            height: 40px;
             display: grid;
             place-items: center;
             border: none;
@@ -315,13 +318,13 @@
 
         .ctrl:hover { color: var(--text); background: var(--glass-hi); }
         .ctrl.on { color: var(--emerald); }
-        .ctrl svg { width: 20px; height: 20px; fill: currentColor; }
-        .ctrl.small svg { width: 17px; height: 17px; }
+        .ctrl svg { width: 23px; height: 23px; fill: currentColor; }
+        .ctrl.small svg { width: 19px; height: 19px; }
 
         .play {
-            width: 42px;
-            height: 42px;
-            margin: 0 4px;
+            width: 54px;
+            height: 54px;
+            margin: 0 6px;
             border-radius: 50%;
             border: none;
             cursor: pointer;
@@ -336,7 +339,7 @@
 
         .play:hover { transform: scale(1.06); }
         .play:active { transform: scale(0.96); }
-        .play svg { width: 22px; height: 22px; fill: currentColor; }
+        .play svg { width: 27px; height: 27px; fill: currentColor; }
         .play:disabled { opacity: .45; cursor: default; transform: none; }
 
         .volume {
@@ -352,7 +355,7 @@
         input[type=range] {
             -webkit-appearance: none;
             appearance: none;
-            width: 72px;
+            width: 96px;
             height: 4px;
             border-radius: 4px;
             background: linear-gradient(90deg, rgba(255,255,255,.7) var(--v, 80%), rgba(255,255,255,.14) var(--v, 80%));
@@ -375,8 +378,8 @@
 
         /* Playlist */
         .list-head {
-            margin-top: 12px;
-            padding-top: 10px;
+            margin-top: 18px;
+            padding-top: 12px;
             border-top: 1px solid var(--line);
             display: flex;
             justify-content: space-between;
@@ -391,7 +394,7 @@
         .list {
             list-style: none;
             margin-top: 4px;
-            max-height: 168px;
+            max-height: 230px;
             overflow-y: auto;
             scrollbar-width: thin;
             scrollbar-color: rgba(255,255,255,.15) transparent;
@@ -401,8 +404,8 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            padding: 5px 6px;
-            border-radius: 8px;
+            padding: 7px 8px;
+            border-radius: 10px;
             cursor: pointer;
             transition: background .15s;
         }
@@ -422,9 +425,9 @@
         .row.active .row-num { color: var(--emerald); }
 
         .row-thumb {
-            width: 32px;
-            height: 32px;
-            border-radius: 6px;
+            width: 40px;
+            height: 40px;
+            border-radius: 7px;
             object-fit: cover;
             background: rgba(13, 42, 51, 0.8);
             flex-shrink: 0;
@@ -434,7 +437,7 @@
 
         .row-title {
             font-weight: 600;
-            font-size: 0.86rem;
+            font-size: 0.95rem;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -529,9 +532,20 @@
             .player { background: rgba(10, 26, 34, 0.85); }
         }
 
+        @media (max-width: 640px) {
+            .art { width: 128px; height: 128px; }
+            .deck { gap: 14px; }
+            .title { font-size: 1.15rem; }
+            .player { padding: 14px; }
+        }
+
         @media (max-width: 480px) {
-            .art { width: 88px; height: 88px; }
+            .art { width: 92px; height: 92px; }
             .deck { gap: 12px; }
+            .title { font-size: 1.02rem; }
+            .artist { font-size: 0.82rem; }
+            .ctrl { width: 36px; height: 36px; }
+            .play { width: 46px; height: 46px; }
             .volume { display: none; }      /* phones use hardware volume */
             .controls { justify-content: space-between; }
             .row-text { display: block; }
@@ -659,6 +673,75 @@
         let repeat = 'off';                 // off | all | one
         let retried = false;
 
+        // ---------- Beat detection (Web Audio) ----------
+        // The stream is same-origin, so the analyser can read it. Created on the
+        // first play (browsers only allow audio contexts after a user gesture).
+        let actx, analyser, freq;
+        const pulse = { level: 0, beat: 0, avg: 0, since: 1, fluxMean: 0, fluxVar: 0 };
+
+        function ensureAnalyser() {
+            if (actx) { if (actx.state === 'suspended') actx.resume(); return; }
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (!AC) return;
+            try {
+                actx = new AC();
+                analyser = actx.createAnalyser();
+                analyser.fftSize = 2048;
+                analyser.smoothingTimeConstant = 0.35;
+                analyser.minDecibels = -85;     // wider range so loud masters don't pin at the top
+                analyser.maxDecibels = -10;
+                actx.createMediaElementSource(audio).connect(analyser);
+                analyser.connect(actx.destination);
+                freq = new Uint8Array(analyser.frequencyBinCount);
+            } catch (err) {
+                console.warn('Beat sync unavailable', err);
+                analyser = null;
+            }
+        }
+
+        // Returns { level, beat }: level follows the bass (0–1); beat jumps to 1 on each kick and decays.
+        // Beats are detected as sudden rises in bass energy (spectral flux) above an adaptive
+        // threshold, which works even on loud, heavily mastered tracks.
+        let prevBins = null;
+
+        function readPulse(dt) {
+            pulse.since += dt;
+            pulse.beat *= Math.exp(-dt * 7);
+            if (!analyser || audio.paused) {
+                pulse.level *= Math.exp(-dt * 4);
+                return pulse;
+            }
+            analyser.getByteFrequencyData(freq);
+            const binHz = actx.sampleRate / analyser.fftSize;
+            const lo = Math.max(1, Math.floor(35 / binHz)), hi = Math.ceil(150 / binHz), n = hi - lo + 1;
+            if (!prevBins || prevBins.length !== n) prevBins = new Float32Array(n);
+
+            let sum = 0, flux = 0;
+            for (let i = 0; i < n; i++) {
+                const v = freq[lo + i] / 255;
+                sum += v;
+                flux += Math.max(0, v - prevBins[i]);
+                prevBins[i] = v;
+            }
+            const bass = sum / n;
+            flux /= n;
+
+            // Running mean/variance of the flux; a beat is a clear spike above it
+            const a = Math.min(1, dt * 1.5);
+            pulse.fluxMean += (flux - pulse.fluxMean) * a;
+            pulse.fluxVar += ((flux - pulse.fluxMean) ** 2 - pulse.fluxVar) * a;
+            if (flux > pulse.fluxMean + 1.5 * Math.sqrt(pulse.fluxVar) && flux > 0.015 && pulse.since > 0.26) {
+                pulse.beat = 1;
+                pulse.since = 0;
+            }
+
+            // Level = bass relative to its slow average, so quiet and loud songs both move
+            pulse.avg += (bass - pulse.avg) * Math.min(1, dt * 0.5);
+            const rel = Math.min(1, Math.max(0, bass - pulse.avg * 0.8) * 2.5);
+            pulse.level += (rel - pulse.level) * Math.min(1, dt * 12);
+            return pulse;
+        }
+
         // ---------- Data ----------
         async function loadTracks() {
             try {
@@ -741,6 +824,7 @@
 
         async function play() {
             if (index === -1 && tracks.length) select(0, false);
+            ensureAnalyser();
             try {
                 await audio.play();
             } catch (err) {
@@ -962,6 +1046,7 @@
         (function starfield() {
             const canvas = $('bgCanvas');
             const ctx = canvas.getContext('2d');
+            const playerEl = $('player');
             const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
             const DEPTH = 1600;             // how far away new stars spawn
             const FOV = 320;                // perspective strength
@@ -1054,9 +1139,12 @@
                 last = now;
                 const t = now / 1000;
 
-                // Cruise slowly when paused, warp faster while music plays
-                const target = reduce ? 0 : audio.paused ? 70 : 260;
-                speed += (target - speed) * Math.min(1, dt * 1.5);
+                // Cruise slowly when paused; while playing, speed follows the bass and surges on each beat
+                const p = readPulse(dt);
+                const target = reduce ? 0 : audio.paused ? 70 : 80 + p.level * 520 + p.beat * 1100;
+                speed += (target - speed) * Math.min(1, dt * (audio.paused ? 1.5 : 9));
+                playerEl.style.setProperty('--beat', p.beat.toFixed(3));
+                const flash = 1 + p.beat * 0.4;
                 px += (tx - px) * dt * 2;
                 py += (ty - py) * dt * 2;
                 const vx = cx + px, vy = cy + py;
@@ -1087,8 +1175,8 @@
                     const near = 1 - s.z / DEPTH;                 // 0 far → 1 close
                     const fade = Math.min(1, near * 3);           // fade in from the distance
                     const twinkle = 0.78 + 0.22 * Math.sin(t * s.tws + s.tw);
-                    const alpha = fade * twinkle;
-                    const r = Math.min(9, s.size * (0.35 + near * near * 3.2));
+                    const alpha = Math.min(1, fade * twinkle * flash);
+                    const r = Math.min(10, s.size * (0.35 + near * near * 3.2) * (1 + p.beat * 0.25));
 
                     // Motion streak toward the vanishing point
                     if (trail > 2 && r > 0.6) {

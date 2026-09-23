@@ -218,6 +218,16 @@
         .empty { color: var(--muted); text-align: center; padding: 2rem 1rem; font-size: 0.9rem; }
 
         .note { color: var(--muted); font-size: 0.8rem; margin-top: 1rem; line-height: 1.5; }
+        .storage { margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--line); }
+        .storage-top { display: flex; justify-content: space-between; font-size: 0.82rem; color: var(--muted); margin-bottom: 0.45rem; }
+        .storage-top b { color: var(--text); font-weight: 600; }
+        .meter { height: 8px; border-radius: 8px; background: var(--line); overflow: hidden; }
+        .meter div { height: 100%; width: 0; background: linear-gradient(90deg, var(--emerald), var(--cyan)); transition: width .4s; }
+        .meter.warn div { background: linear-gradient(90deg, #f59e0b, #ef4444); }
+        .cleanup { display: none; margin-top: 0.75rem; align-items: center; justify-content: space-between; gap: 0.75rem; font-size: 0.82rem; color: var(--muted); }
+        .cleanup.show { display: flex; }
+        .cleanup button { width: auto; padding: 0.45rem 0.8rem; font-size: 0.8rem; }
+
         .note code { color: var(--text); background: var(--card-2); padding: 0.05rem 0.35rem; border-radius: 4px; }
     </style>
 </head>
@@ -290,6 +300,14 @@
             <section class="card">
                 <h2>Tracks <span id="trackCount" style="color:var(--muted);font-weight:500;font-size:.9rem"></span></h2>
                 <div class="list" id="list"><div class="empty">Loading…</div></div>
+                <div class="storage">
+                    <div class="storage-top"><span>Storage</span><span id="storageText">…</span></div>
+                    <div class="meter" id="meter"><div id="meterFill"></div></div>
+                    <div class="cleanup" id="cleanup">
+                        <span id="cleanupText"></span>
+                        <button type="button" class="btn ghost" id="cleanupBtn">Remove leftovers</button>
+                    </div>
+                </div>
                 <p class="note">
                     Tracks are stored in private cloud storage and stay published until you remove them here.
                     To change the studio password, update <code>ADMIN_PASSWORD</code> in Vercel → Project → Settings → Environment Variables, then redeploy.
@@ -368,10 +386,11 @@
         // ---------- Track list ----------
         async function loadTracks() {
             try {
-                const res = await fetch('/api/tracks', { cache: 'no-store' });
+                const res = await fetch('/api/tracks?fresh=' + Date.now(), { cache: 'no-store' });
                 if (!res.ok) throw new Error('Could not load tracks (' + res.status + ')');
                 tracks = await res.json();
                 render();
+                loadStorage();
             } catch (err) {
                 $('list').innerHTML = `<div class="empty">${err.message}</div>`;
             }
@@ -435,6 +454,7 @@
                         if (a === 'del' && confirm(`Delete "${t.title}" permanently? This removes the audio file too.`)) {
                             tracks = await api('DELETE', '/api/tracks?id=' + encodeURIComponent(t.id));
                             render();
+                            loadStorage();
                         }
                     } catch (err) { alert(err.message); }
                 });
@@ -455,6 +475,30 @@
                 list.appendChild(el);
             });
         }
+
+        // ---------- Storage ----------
+        const mb = (b) => b >= 1024 ** 3 ? (b / 1024 ** 3).toFixed(2) + ' GB' : (b / 1048576).toFixed(1) + ' MB';
+
+        function showStorage(s) {
+            const pct = Math.min(100, (s.usedBytes / s.limitBytes) * 100);
+            $('storageText').innerHTML = `<b>${mb(s.usedBytes)}</b> of ${mb(s.limitBytes)} used`;
+            $('meterFill').style.width = Math.max(1, pct) + '%';
+            $('meter').classList.toggle('warn', pct > 80);
+            $('cleanup').classList.toggle('show', s.orphanCount > 0);
+            $('cleanupText').textContent = `${s.orphanCount} leftover file${s.orphanCount === 1 ? '' : 's'} from unfinished uploads (${mb(s.orphanBytes)})`;
+        }
+
+        async function loadStorage() {
+            try { showStorage(await api('GET', '/api/storage')); } catch { $('storageText').textContent = 'unavailable'; }
+        }
+
+        $('cleanupBtn').addEventListener('click', async () => {
+            if (!confirm('Delete the leftover files? They are not used by any published track.')) return;
+            $('cleanupBtn').disabled = true;
+            try { showStorage(await api('POST', '/api/storage', { action: 'cleanup' })); }
+            catch (err) { alert(err.message); }
+            finally { $('cleanupBtn').disabled = false; }
+        });
 
         // ---------- Upload ----------
         function wireDrop(dropId, inputId, fallback) {
@@ -540,6 +584,7 @@
                     coverPath,
                 });
                 render();
+                loadStorage();
                 e.target.reset();
                 resetAudio(); resetCover();
                 msg.className = 'msg ok';
