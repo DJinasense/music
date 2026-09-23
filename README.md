@@ -10,6 +10,7 @@ A single, centered streaming-only music player, plus a password-protected admin 
   - `upload.js`: issues short-lived tokens so the browser uploads straight to Blob storage
   - `stream.js`: streams audio in small signed byte ranges, so there are no public file URLs
   - `cover.js`: serves cover art
+  - `storage.js`: storage usage for the admin meter, and cleanup of leftover uploads (admin)
 - `vendor/blob-client.js`: bundled `@vercel/blob/client`, built from `vendor-src/` with `npm run build:vendor`
 
 ## Where the music lives
