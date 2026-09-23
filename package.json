@@ -1,0 +1,17 @@
+{
+  "name": "music-dgrvip-net",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Music Vault - music.dgrvip.net",
+  "scripts": {
+    "dev": "vercel dev",
+    "build:vendor": "esbuild vendor-src/blob-client.js --bundle --format=esm --minify --platform=browser --outfile=vendor/blob-client.js"
+  },
+  "dependencies": {
+    "@vercel/blob": "2.8.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
+}

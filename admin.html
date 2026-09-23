@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <title>Music Vault | Admin Studio</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg: #030f14;
+            --card: #0a1a22;
+            --card-2: #0f242e;
+            --line: #17333f;
+            --emerald: #00e699;
+            --cyan: #00b4d8;
+            --text: #f0fdfa;
+            --muted: #8aa3b0;
+            --danger: #f87171;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Outfit', system-ui, sans-serif;
+            background: var(--bg);
+            background-image:
+                radial-gradient(circle at 15% 10%, rgba(0, 230, 153, 0.08), transparent 40%),
+                radial-gradient(circle at 85% 90%, rgba(0, 180, 216, 0.08), transparent 45%);
+            background-attachment: fixed;
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        .wrap { max-width: 1080px; margin: 0 auto; padding: 1.25rem 16px 3rem; }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 1.15rem;
+            color: var(--text);
+            text-decoration: none;
+        }
+
+        .brand-mark {
+            width: 32px; height: 32px;
+            border-radius: 9px;
+            background: linear-gradient(135deg, var(--emerald), var(--cyan));
+            display: grid; place-items: center;
+        }
+
+        .brand-mark svg { width: 18px; height: 18px; fill: #031017; }
+        .brand small { color: var(--muted); font-family: 'Outfit'; font-weight: 500; font-size: 0.85rem; }
+
+        .actions { display: flex; gap: 0.5rem; }
+
+        .pill {
+            padding: 0.45rem 0.9rem;
+            border-radius: 50px;
+            border: 1px solid var(--line);
+            background: var(--card);
+            color: var(--muted);
+            font: 600 0.85rem 'Outfit', sans-serif;
+            text-decoration: none;
+            cursor: pointer;
+            transition: color .2s, border-color .2s;
+        }
+
+        .pill:hover { color: var(--emerald); border-color: var(--emerald); }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            padding: 1.5rem;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+        }
+
+        h2 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.15rem;
+            margin-bottom: 1.25rem;
+        }
+
+        /* Login */
+        .login { max-width: 400px; margin: 6vh auto 0; text-align: center; }
+        .login p { color: var(--muted); font-size: 0.9rem; margin: -0.75rem 0 1.5rem; }
+
+        .field { margin-bottom: 1rem; text-align: left; }
+        .field label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--muted); margin-bottom: 0.4rem; }
+        .field .hint { font-weight: 400; opacity: .8; }
+
+        input[type=text], input[type=password], input[type=url] {
+            width: 100%;
+            padding: 0.75rem 0.9rem;
+            border-radius: 12px;
+            border: 1px solid var(--line);
+            background: #06131a;
+            color: var(--text);
+            font: 400 0.95rem 'Outfit', sans-serif;
+            outline: none;
+            transition: border-color .2s;
+        }
+
+        input:focus { border-color: var(--emerald); }
+
+        .drop {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.9rem;
+            border: 1px dashed #24505f;
+            border-radius: 12px;
+            background: #06131a;
+            cursor: pointer;
+            transition: border-color .2s, background .2s;
+        }
+
+        .drop:hover, .drop.over { border-color: var(--emerald); background: #081c22; }
+        .drop input { display: none; }
+        .drop-icon { width: 36px; height: 36px; border-radius: 10px; background: var(--card-2); display: grid; place-items: center; flex-shrink: 0; }
+        .drop-icon svg { width: 18px; height: 18px; fill: var(--emerald); }
+        .drop-text { min-width: 0; font-size: 0.88rem; }
+        .drop-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .drop-sub { color: var(--muted); font-size: 0.78rem; }
+
+        .btn {
+            width: 100%;
+            padding: 0.8rem;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--emerald), var(--cyan));
+            color: #031017;
+            font: 700 0.95rem 'Outfit', sans-serif;
+            cursor: pointer;
+            transition: opacity .2s;
+        }
+
+        .btn:disabled { opacity: .5; cursor: default; }
+
+        .msg { margin-top: 0.75rem; font-size: 0.85rem; min-height: 1.2em; }
+        .msg.err { color: var(--danger); }
+        .msg.ok { color: var(--emerald); }
+
+        .progress {
+            display: none;
+            height: 6px;
+            border-radius: 6px;
+            background: var(--line);
+            overflow: hidden;
+            margin-top: 0.75rem;
+        }
+
+        .progress.show { display: block; }
+        .progress div { height: 100%; width: 0; background: linear-gradient(90deg, var(--emerald), var(--cyan)); transition: width .2s; }
+
+        /* Studio */
+        .studio { display: none; grid-template-columns: 380px 1fr; gap: 1.5rem; align-items: start; }
+        .studio.show { display: grid; }
+
+        @media (max-width: 860px) { .studio.show { grid-template-columns: 1fr; } }
+
+        .list { display: flex; flex-direction: column; gap: 0.6rem; }
+
+        .item {
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: #0c1f28;
+        }
+
+        .item-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.7rem; }
+        .thumb { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; background: var(--card-2); flex-shrink: 0; }
+        .item-text { flex: 1; min-width: 0; }
+        .item-title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .item-sub { color: var(--muted); font-size: 0.8rem; }
+        .item-sub .yt { color: #ff6b81; }
+
+        .icon-btns { display: flex; gap: 0.25rem; flex-shrink: 0; }
+
+        .icon-btn {
+            width: 32px; height: 32px;
+            display: grid; place-items: center;
+            border-radius: 8px;
+            border: 1px solid transparent;
+            background: none;
+            color: var(--muted);
+            cursor: pointer;
+        }
+
+        .icon-btn:hover { background: var(--card-2); color: var(--text); }
+        .icon-btn.del:hover { color: var(--danger); border-color: rgba(248, 113, 113, 0.3); }
+        .icon-btn:disabled { opacity: .3; cursor: default; background: none; }
+        .icon-btn svg { width: 17px; height: 17px; fill: currentColor; }
+
+        .edit { display: none; padding: 0 0.7rem 0.8rem; gap: 0.5rem; flex-direction: column; }
+        .item.editing .edit { display: flex; }
+        .edit-actions { display: flex; gap: 0.5rem; }
+        .edit-actions button { flex: 1; padding: 0.55rem; font-size: 0.85rem; }
+        .btn.ghost { background: var(--card-2); color: var(--muted); border: 1px solid var(--line); }
+
+        audio { width: 100%; height: 34px; margin: 0 0 0.2rem; }
+
+        .empty { color: var(--muted); text-align: center; padding: 2rem 1rem; font-size: 0.9rem; }
+
+        .note { color: var(--muted); font-size: 0.8rem; margin-top: 1rem; line-height: 1.5; }
+        .note code { color: var(--text); background: var(--card-2); padding: 0.05rem 0.35rem; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <header>
+            <a href="/" class="brand">
+                <span class="brand-mark"><svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg></span>
+                Music Vault <small>Studio</small>
+            </a>
+            <div class="actions">
+                <a href="/" class="pill">View player</a>
+                <button class="pill" id="logoutBtn" type="button" hidden>Log out</button>
+            </div>
+        </header>
+
+        <!-- Login -->
+        <section class="card login" id="loginView" hidden>
+            <h2>Admin sign in</h2>
+            <p>Enter the studio password to manage tracks.</p>
+            <form id="loginForm">
+                <div class="field">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" autocomplete="current-password" required>
+                </div>
+                <button class="btn" type="submit" id="loginBtn">Unlock studio</button>
+                <div class="msg err" id="loginMsg"></div>
+            </form>
+        </section>
+
+        <!-- Studio -->
+        <div class="studio" id="studioView">
+            <section class="card">
+                <h2>Publish a track</h2>
+                <form id="uploadForm">
+                    <div class="field">
+                        <label for="tTitle">Title *</label>
+                        <input type="text" id="tTitle" maxlength="120" required placeholder="e.g. Cyber Pulse">
+                    </div>
+                    <div class="field">
+                        <label for="tArtist">Artist</label>
+                        <input type="text" id="tArtist" maxlength="120" placeholder="DGR VIP">
+                    </div>
+                    <div class="field">
+                        <label>Audio file * <span class="hint">(MP3, WAV, M4A, FLAC…)</span></label>
+                        <label class="drop" id="audioDrop">
+                            <input type="file" id="tAudio" accept="audio/*">
+                            <span class="drop-icon"><svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg></span>
+                            <span class="drop-text"><div class="drop-name">Choose or drop audio</div><div class="drop-sub">Up to 500 MB</div></span>
+                        </label>
+                    </div>
+                    <div class="field">
+                        <label>Cover art <span class="hint">(optional, square works best)</span></label>
+                        <label class="drop" id="coverDrop">
+                            <input type="file" id="tCover" accept="image/*">
+                            <span class="drop-icon"><svg viewBox="0 0 24 24"><path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2zM8.5 13.5l2.5 3 3.5-4.5 4.5 6H5l3.5-4.5z"/></svg></span>
+                            <span class="drop-text"><div class="drop-name">Choose or drop image</div><div class="drop-sub">JPG / PNG / WebP</div></span>
+                        </label>
+                    </div>
+                    <div class="field">
+                        <label for="tYoutube">YouTube video link <span class="hint">(optional)</span></label>
+                        <input type="url" id="tYoutube" placeholder="https://www.youtube.com/watch?v=…">
+                    </div>
+                    <button class="btn" type="submit" id="uploadBtn">Upload &amp; publish</button>
+                    <div class="progress" id="progress"><div id="progressFill"></div></div>
+                    <div class="msg" id="uploadMsg"></div>
+                </form>
+            </section>
+
+            <section class="card">
+                <h2>Tracks <span id="trackCount" style="color:var(--muted);font-weight:500;font-size:.9rem"></span></h2>
+                <div class="list" id="list"><div class="empty">Loading…</div></div>
+                <p class="note">
+                    Tracks are stored in private cloud storage and stay published until you remove them here.
+                    To change the studio password, update <code>ADMIN_PASSWORD</code> in Vercel → Project → Settings → Environment Variables, then redeploy.
+                </p>
+            </section>
+        </div>
+    </div>
+
+    <script type="module">
+        import { upload } from '/vendor/blob-client.js';
+
+        const $ = (id) => document.getElementById(id);
+        const NOTE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%230f242e'/%3E%3Cpath d='M12 5v8.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V9h4V5h-6z' transform='translate(2.4 1.2) scale(.8)' fill='%2300e699' opacity='.6'/%3E%3C/svg%3E";
+        const ICONS = {
+            up: '<path d="M7.41 15.41 12 10.83l4.59 4.58L18 14l-6-6-6 6z"/>',
+            down: '<path d="M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6z"/>',
+            edit: '<path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>',
+            del: '<path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>',
+        };
+
+        let token = null;
+        try { token = localStorage.getItem('vault_admin_token'); } catch {}
+        let tracks = [];
+
+        // ---------- Auth ----------
+        function showView() {
+            const signedIn = !!token;
+            $('loginView').hidden = signedIn;
+            $('studioView').classList.toggle('show', signedIn);
+            $('logoutBtn').hidden = !signedIn;
+            if (signedIn) loadTracks();
+            else $('password').focus();
+        }
+
+        function setToken(t) {
+            token = t;
+            try { t ? localStorage.setItem('vault_admin_token', t) : localStorage.removeItem('vault_admin_token'); } catch {}
+            showView();
+        }
+
+        $('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            $('loginBtn').disabled = true;
+            $('loginMsg').textContent = '';
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: $('password').value }),
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(data.error || 'Sign in failed');
+                $('password').value = '';
+                setToken(data.token);
+            } catch (err) {
+                $('loginMsg').textContent = err.message;
+            } finally {
+                $('loginBtn').disabled = false;
+            }
+        });
+
+        $('logoutBtn').addEventListener('click', () => setToken(null));
+
+        async function api(method, url, body) {
+            const res = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+                body: body ? JSON.stringify(body) : undefined,
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.status === 401) { setToken(null); throw new Error('Session expired — please sign in again'); }
+            if (!res.ok) throw new Error(data.error || 'Request failed (' + res.status + ')');
+            return data;
+        }
+
+        // ---------- Track list ----------
+        async function loadTracks() {
+            try {
+                const res = await fetch('/api/tracks', { cache: 'no-store' });
+                if (!res.ok) throw new Error('Could not load tracks (' + res.status + ')');
+                tracks = await res.json();
+                render();
+            } catch (err) {
+                $('list').innerHTML = `<div class="empty">${err.message}</div>`;
+            }
+        }
+
+        function render() {
+            const list = $('list');
+            $('trackCount').textContent = tracks.length ? `(${tracks.length})` : '';
+            list.innerHTML = '';
+            if (!tracks.length) {
+                list.innerHTML = '<div class="empty">No tracks yet. Publish your first one.</div>';
+                return;
+            }
+            tracks.forEach((t, i) => {
+                const el = document.createElement('div');
+                el.className = 'item';
+                el.innerHTML = `
+                    <div class="item-row">
+                        <img class="thumb" alt="">
+                        <div class="item-text">
+                            <div class="item-title"></div>
+                            <div class="item-sub"><span class="artist"></span>${t.youtubeId ? ' · <span class="yt">video</span>' : ''}</div>
+                        </div>
+                        <div class="icon-btns">
+                            <button class="icon-btn" data-a="up" aria-label="Move up" ${i === 0 ? 'disabled' : ''}><svg viewBox="0 0 24 24">${ICONS.up}</svg></button>
+                            <button class="icon-btn" data-a="down" aria-label="Move down" ${i === tracks.length - 1 ? 'disabled' : ''}><svg viewBox="0 0 24 24">${ICONS.down}</svg></button>
+                            <button class="icon-btn" data-a="edit" aria-label="Edit"><svg viewBox="0 0 24 24">${ICONS.edit}</svg></button>
+                            <button class="icon-btn del" data-a="del" aria-label="Delete"><svg viewBox="0 0 24 24">${ICONS.del}</svg></button>
+                        </div>
+                    </div>
+                    <form class="edit">
+                        <audio controls preload="none"></audio>
+                        <input type="text" name="title" maxlength="120" required placeholder="Title">
+                        <input type="text" name="artist" maxlength="120" placeholder="Artist">
+                        <input type="url" name="youtubeUrl" placeholder="YouTube link (leave empty for none)">
+                        <div class="edit-actions">
+                            <button type="button" class="btn ghost" data-a="cancel">Cancel</button>
+                            <button type="submit" class="btn">Save</button>
+                        </div>
+                    </form>`;
+                el.querySelector('.thumb').src = t.cover || NOTE;
+                el.querySelector('.item-title').textContent = t.title;
+                el.querySelector('.artist').textContent = t.artist;
+                const form = el.querySelector('form');
+                form.title.value = t.title;
+                form.artist.value = t.artist;
+                form.youtubeUrl.value = t.youtubeId ? 'https://www.youtube.com/watch?v=' + t.youtubeId : '';
+
+                el.addEventListener('click', async (e) => {
+                    const a = e.target.closest('[data-a]')?.dataset.a;
+                    if (!a) return;
+                    e.preventDefault();
+                    try {
+                        if (a === 'edit') {
+                            el.classList.toggle('editing');
+                            const audio = el.querySelector('audio');
+                            if (!audio.src) audio.src = t.stream;
+                        }
+                        if (a === 'cancel') el.classList.remove('editing');
+                        if (a === 'up' || a === 'down') tracks = await api('PATCH', '/api/tracks', { id: t.id, move: a }), render();
+                        if (a === 'del' && confirm(`Delete "${t.title}" permanently? This removes the audio file too.`)) {
+                            tracks = await api('DELETE', '/api/tracks?id=' + encodeURIComponent(t.id));
+                            render();
+                        }
+                    } catch (err) { alert(err.message); }
+                });
+
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    try {
+                        tracks = await api('PATCH', '/api/tracks', {
+                            id: t.id,
+                            title: form.title.value,
+                            artist: form.artist.value,
+                            youtubeUrl: form.youtubeUrl.value,
+                        });
+                        render();
+                    } catch (err) { alert(err.message); }
+                });
+
+                list.appendChild(el);
+            });
+        }
+
+        // ---------- Upload ----------
+        function wireDrop(dropId, inputId, fallback) {
+            const drop = $(dropId), input = $(inputId);
+            const name = drop.querySelector('.drop-name'), sub = drop.querySelector('.drop-sub');
+            const show = () => {
+                const f = input.files[0];
+                name.textContent = f ? f.name : fallback[0];
+                sub.textContent = f ? (f.size / 1048576).toFixed(1) + ' MB' : fallback[1];
+            };
+            input.addEventListener('change', show);
+            drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+            drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+            drop.addEventListener('drop', (e) => {
+                e.preventDefault();
+                drop.classList.remove('over');
+                if (e.dataTransfer.files.length) { input.files = e.dataTransfer.files; show(); }
+            });
+            return show;
+        }
+
+        const resetAudio = wireDrop('audioDrop', 'tAudio', ['Choose or drop audio', 'Up to 500 MB']);
+        const resetCover = wireDrop('coverDrop', 'tCover', ['Choose or drop image', 'JPG / PNG / WebP']);
+
+        function safeName(file) {
+            const dot = file.name.lastIndexOf('.');
+            const base = (dot > 0 ? file.name.slice(0, dot) : file.name)
+                .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60) || 'file';
+            const ext = dot > 0 ? file.name.slice(dot + 1).toLowerCase().replace(/[^a-z0-9]/g, '') : '';
+            return ext ? `${base}.${ext}` : base;
+        }
+
+        function setProgress(pct) {
+            $('progress').classList.toggle('show', pct !== null);
+            $('progressFill').style.width = (pct || 0) + '%';
+        }
+
+        $('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const audioFile = $('tAudio').files[0];
+            const coverFile = $('tCover').files[0];
+            const msg = $('uploadMsg');
+            msg.className = 'msg';
+
+            if (!audioFile) { msg.className = 'msg err'; msg.textContent = 'Please choose an audio file.'; return; }
+            if (audioFile.type && !audioFile.type.startsWith('audio/')) { msg.className = 'msg err'; msg.textContent = 'That file is not audio.'; return; }
+
+            $('uploadBtn').disabled = true;
+            const headers = { Authorization: 'Bearer ' + token };
+            try {
+                let coverPath = null;
+                if (coverFile) {
+                    msg.textContent = 'Uploading cover…';
+                    const c = await upload('covers/' + safeName(coverFile), coverFile, {
+                        access: 'private',
+                        handleUploadUrl: '/api/upload',
+                        headers,
+                        contentType: coverFile.type || undefined,
+                    });
+                    coverPath = c.pathname;
+                }
+
+                msg.textContent = 'Uploading audio…';
+                setProgress(0);
+                const a = await upload('audio/' + safeName(audioFile), audioFile, {
+                    access: 'private',
+                    handleUploadUrl: '/api/upload',
+                    headers,
+                    contentType: audioFile.type || undefined,
+                    multipart: audioFile.size > 20 * 1024 * 1024,
+                    onUploadProgress: ({ percentage }) => {
+                        setProgress(percentage);
+                        msg.textContent = `Uploading audio… ${Math.round(percentage)}%`;
+                    },
+                });
+
+                msg.textContent = 'Publishing…';
+                tracks = await api('POST', '/api/tracks', {
+                    title: $('tTitle').value,
+                    artist: $('tArtist').value,
+                    youtubeUrl: $('tYoutube').value,
+                    audioPath: a.pathname,
+                    coverPath,
+                });
+                render();
+                e.target.reset();
+                resetAudio(); resetCover();
+                msg.className = 'msg ok';
+                msg.textContent = 'Published! It is live on the player now.';
+            } catch (err) {
+                console.error(err);
+                msg.className = 'msg err';
+                msg.textContent = /401|sign in|unauthor/i.test(err.message) ? 'Session expired — please sign in again.' : 'Upload failed: ' + err.message;
+                if (/401/.test(err.message)) setToken(null);
+            } finally {
+                $('uploadBtn').disabled = false;
+                setProgress(null);
+            }
+        });
+
+        showView();
+    </script>
+</body>
+</html>
