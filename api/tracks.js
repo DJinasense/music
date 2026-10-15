@@ -1,6 +1,6 @@
-import { head, del } from '@vercel/blob';
-import { isAdmin } from './_lib/auth.js';
+﻿import { isAdmin } from './_lib/auth.js';
 import { readManifest, mutateTracks, publicTrack, youtubeId } from './_lib/store.js';
+import { headObject, deleteObjects } from './_lib/r2.js';
 
 const clean = (v, max = 120) => String(v ?? '').trim().slice(0, max);
 
@@ -17,7 +17,7 @@ export default async function handler(req, res) {
 
     if (!isAdmin(req)) return res.status(401).json({ error: 'Not signed in' });
 
-    // Add a track after its files were uploaded directly to Blob storage
+    // Add a track after its files were uploaded directly to R2 storage
     if (req.method === 'POST') {
       const { title, artist, youtubeUrl, audioPath, coverPath } = req.body || {};
       if (!clean(title)) return res.status(400).json({ error: 'Title is required' });
@@ -25,8 +25,12 @@ export default async function handler(req, res) {
       if (coverPath && !/^covers\//.test(coverPath)) return res.status(400).json({ error: 'Bad cover path' });
 
       // Confirm the uploads really exist before publishing them
-      await head(audioPath);
-      if (coverPath) await head(coverPath);
+      try {
+        await headObject(audioPath);
+        if (coverPath) await headObject(coverPath);
+      } catch (err) {
+        return res.status(400).json({ error: 'Uploaded file not found in storage. Please try re-uploading.' });
+      }
 
       const track = {
         id: 'tr_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
@@ -42,7 +46,7 @@ export default async function handler(req, res) {
         tracks = await mutateTracks((list) => [...list, track]);
       } catch (err) {
         // Don't leave the just-uploaded files behind if publishing failed
-        await del([audioPath, coverPath].filter(Boolean)).catch(() => {});
+        await deleteObjects([audioPath, coverPath].filter(Boolean)).catch(() => {});
         throw err;
       }
       return res.status(200).json(tracks.map(publicTrack));
@@ -74,7 +78,7 @@ export default async function handler(req, res) {
         return list.filter((t) => t.id !== id);
       });
       if (removed) {
-        await del([removed.audioPath, removed.coverPath].filter(Boolean)).catch((e) => console.error(e));
+        await deleteObjects([removed.audioPath, removed.coverPath].filter(Boolean)).catch((e) => console.error(e));
       }
       return res.status(200).json(tracks.map(publicTrack));
     }

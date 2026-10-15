@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -229,6 +229,127 @@
         .cleanup button { width: auto; padding: 0.45rem 0.8rem; font-size: 0.8rem; }
 
         .note code { color: var(--text); background: var(--card-2); padding: 0.05rem 0.35rem; border-radius: 4px; }
+
+        /* Subtle "Forgot Password" icon button in bottom right */
+        .pwd-help-btn {
+            position: fixed;
+            bottom: 16px;
+            right: 16px;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: rgba(10, 26, 34, 0.65);
+            border: 1px solid rgba(23, 51, 63, 0.7);
+            color: rgba(138, 163, 176, 0.35);
+            display: grid;
+            place-items: center;
+            cursor: pointer;
+            z-index: 999;
+            backdrop-filter: blur(6px);
+            transition: color .25s ease, background .25s ease, border-color .25s ease, opacity .25s ease, transform .2s ease;
+            opacity: 0.45;
+        }
+
+        .pwd-help-btn:hover {
+            opacity: 0.95;
+            color: var(--emerald);
+            border-color: rgba(0, 230, 153, 0.4);
+            background: rgba(15, 36, 46, 0.9);
+            transform: scale(1.05);
+        }
+
+        .pwd-help-btn svg {
+            width: 17px;
+            height: 17px;
+            fill: currentColor;
+        }
+
+        .pwd-modal-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(3, 15, 20, 0.75);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            place-items: center;
+            padding: 16px;
+        }
+
+        .pwd-modal-backdrop.open {
+            display: grid;
+        }
+
+        .pwd-modal {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            padding: 1.5rem;
+            max-width: 380px;
+            width: 100%;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+            text-align: left;
+            position: relative;
+            animation: modalPop .2s ease-out;
+        }
+
+        @keyframes modalPop {
+            from { transform: scale(0.95); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .pwd-modal-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.85rem;
+        }
+
+        .pwd-modal-head h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.05rem;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .pwd-modal-head h3 svg {
+            width: 18px;
+            height: 18px;
+            fill: var(--emerald);
+        }
+
+        .pwd-modal-close {
+            background: none;
+            border: none;
+            color: var(--muted);
+            font-size: 1.3rem;
+            line-height: 1;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 6px;
+        }
+
+        .pwd-modal-close:hover {
+            color: var(--text);
+        }
+
+        .pwd-modal p {
+            font-size: 0.88rem;
+            color: var(--muted);
+            line-height: 1.55;
+            margin-bottom: 0.75rem;
+        }
+
+        .pwd-modal .box {
+            background: #06131a;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 0.75rem 0.85rem;
+            font-size: 0.82rem;
+            color: var(--text);
+            margin-bottom: 1.1rem;
+        }
     </style>
 </head>
 <body>
@@ -317,7 +438,64 @@
     </div>
 
     <script type="module">
-        import { upload } from '/vendor/blob-client.js';
+        // Direct Cloudflare R2 Upload via Presigned PUT URLs
+        async function upload(path, file, options = {}) {
+            const isCover = path.startsWith('covers/');
+            const type = isCover ? 'cover' : 'audio';
+            const headers = options.headers || {};
+
+            // 1. Get presigned upload URL from our backend
+            const res = await fetch('/api/upload', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...headers,
+                },
+                body: JSON.stringify({
+                    filename: file.name,
+                    contentType: options.contentType || file.type,
+                    type,
+                }),
+            });
+
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.error || `Upload authorization failed (${res.status})`);
+            }
+
+            const { uploadUrl, pathname } = await res.json();
+
+            // 2. Direct upload to Cloudflare R2
+            await new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                xhr.open('PUT', uploadUrl);
+                if (options.contentType || file.type) {
+                    xhr.setRequestHeader('Content-Type', options.contentType || file.type);
+                }
+                if (xhr.upload && options.onUploadProgress) {
+                    xhr.upload.onprogress = (e) => {
+                        if (e.lengthComputable) {
+                            options.onUploadProgress({
+                                percentage: (e.loaded / e.total) * 100,
+                                loaded: e.loaded,
+                                total: e.total,
+                            });
+                        }
+                    };
+                }
+                xhr.onload = () => {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        resolve();
+                    } else {
+                        reject(new Error(`Storage rejected upload (status ${xhr.status})`));
+                    }
+                };
+                xhr.onerror = () => reject(new Error('Network error uploading to Cloudflare R2'));
+                xhr.send(file);
+            });
+
+            return { pathname };
+        }
 
         const $ = (id) => document.getElementById(id);
         const NOTE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%230f242e'/%3E%3Cpath d='M12 5v8.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V9h4V5h-6z' transform='translate(2.4 1.2) scale(.8)' fill='%2300e699' opacity='.6'/%3E%3C/svg%3E";
@@ -604,3 +782,4 @@
     </script>
 </body>
 </html>
+

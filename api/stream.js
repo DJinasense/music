@@ -1,5 +1,6 @@
-import { Readable } from 'node:stream';
-import { get } from '@vercel/blob';
+﻿import { Readable } from 'node:stream';
+import { GetObjectCommand } from '@aws-sdk/client-s3';
+import { getR2Client, BUCKET } from './_lib/r2.js';
 import { verify } from './_lib/auth.js';
 
 // Serve audio in capped byte ranges. Browsers' audio players request more as
@@ -18,24 +19,39 @@ export default async function handler(req, res) {
   const wanted = m && m[2] ? parseInt(m[2], 10) : Infinity;
   const end = Math.min(wanted, start + CHUNK - 1);
 
-  let blob;
+  const client = getR2Client();
+
   try {
-    blob = await get(payload.p, { access: 'private', headers: { range: `bytes=${start}-${end}` } });
+    const s3Res = await client.send(new GetObjectCommand({
+      Bucket: BUCKET,
+      Key: payload.p,
+      Range: `bytes=${start}-${end}`,
+    }));
+
+    res.statusCode = s3Res.ContentRange ? 206 : 200;
+    res.setHeader('Content-Type', s3Res.ContentType || 'audio/mpeg');
+    res.setHeader('Accept-Ranges', 'bytes');
+    if (s3Res.ContentRange) res.setHeader('Content-Range', s3Res.ContentRange);
+    if (s3Res.ContentLength) res.setHeader('Content-Length', s3Res.ContentLength);
+    res.setHeader('Content-Disposition', 'inline');
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+
+    if (s3Res.Body.pipe) {
+      s3Res.Body.pipe(res);
+    } else if (s3Res.Body.transformToWebStream) {
+      Readable.fromWeb(s3Res.Body.transformToWebStream()).pipe(res);
+    } else {
+      Readable.from(s3Res.Body).pipe(res);
+    }
   } catch (err) {
-    if (/416/.test(err.message)) return res.status(416).end();
-    console.error(err);
+    if (err.$metadata?.httpStatusCode === 416 || err.name === 'InvalidRange') {
+      return res.status(416).end();
+    }
+    if (err.name === 'NoSuchKey' || err.$metadata?.httpStatusCode === 404) {
+      return res.status(404).end();
+    }
+    console.error('Audio stream error:', err);
     return res.status(502).end();
   }
-  if (!blob) return res.status(404).end();
-
-  const h = blob.headers;
-  res.statusCode = h.get('content-range') ? 206 : 200;
-  res.setHeader('Content-Type', blob.blob.contentType);
-  res.setHeader('Accept-Ranges', 'bytes');
-  if (h.get('content-range')) res.setHeader('Content-Range', h.get('content-range'));
-  if (h.get('content-length')) res.setHeader('Content-Length', h.get('content-length'));
-  res.setHeader('Content-Disposition', 'inline');
-  res.setHeader('Cache-Control', 'private, no-store');
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  Readable.fromWeb(blob.stream).pipe(res);
 }

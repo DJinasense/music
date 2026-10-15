@@ -1,8 +1,8 @@
-import { del } from '@vercel/blob';
-import { isAdmin } from './_lib/auth.js';
+﻿import { isAdmin } from './_lib/auth.js';
 import { storageReport } from './_lib/store.js';
+import { deleteObjects } from './_lib/r2.js';
 
-const LIMIT_BYTES = 1024 ** 3; // Vercel Hobby plan: 1 GB of Blob storage
+const LIMIT_BYTES = 10 * 1024 ** 3; // Cloudflare R2 standard tier: 10 GB
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
@@ -11,7 +11,7 @@ export default async function handler(req, res) {
   try {
     if (req.method === 'POST' && req.body?.action === 'cleanup') {
       const { orphans } = await storageReport();
-      if (orphans.length) await del(orphans.map((b) => b.pathname));
+      if (orphans.length) await deleteObjects(orphans.map((b) => b.pathname));
     } else if (req.method !== 'GET') {
       return res.status(405).json({ error: 'Method not allowed' });
     }
@@ -24,7 +24,7 @@ export default async function handler(req, res) {
       orphanBytes: r.orphanBytes,
     });
   } catch (err) {
-    console.error(err);
+    console.error('Storage report error:', err);
     return res.status(500).json({ error: err.message });
   }
 }

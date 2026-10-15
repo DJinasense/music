@@ -2,3 +2,6 @@ node_modules
 .vercel
 .env*
 amplify-ui/
+
+.vercel
+.env*

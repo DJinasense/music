@@ -1,43 +1,52 @@
-import { get, put, list, BlobPreconditionFailedError } from '@vercel/blob';
+import { S3Client, GetObjectCommand, PutObjectCommand, DeleteObjectsCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
+import { getR2Client, BUCKET } from './r2.js';
 import { sign } from './auth.js';
 
 const MANIFEST = 'data/tracks.json';
 
 export async function readManifest() {
-  const result = await get(MANIFEST, { access: 'private', useCache: false });
-  if (!result || result.statusCode !== 200) return { tracks: [], etag: null };
-  const text = await new Response(result.stream).text();
-  // Reads can come back with a weak ETag (W/"…") once the file is compressed in
-  // transit; conditional writes only accept the strong form.
-  return { tracks: JSON.parse(text), etag: result.blob.etag.replace(/^W\//, '') };
+  const r2 = getR2Client();
+  try {
+    const res = await r2.send(new GetObjectCommand({
+      Bucket: BUCKET,
+      Key: MANIFEST,
+    }));
+    const text = await res.Body.transformToString();
+    return { tracks: JSON.parse(text), etag: res.ETag ? res.ETag.replace(/"/g, '') : null };
+  } catch (err) {
+    if (err.name === 'NoSuchKey' || err.$metadata?.httpStatusCode === 404) {
+      return { tracks: [], etag: null };
+    }
+    console.error('Error reading manifest from R2:', err);
+    return { tracks: [], etag: null };
+  }
 }
 
-async function writeManifest(tracks, etag) {
-  await put(MANIFEST, JSON.stringify(tracks, null, 2), {
-    access: 'private',
-    contentType: 'application/json',
-    addRandomSuffix: false,
-    allowOverwrite: true,
-    ...(etag ? { ifMatch: etag } : {}),
-  });
+async function writeManifest(tracks) {
+  const r2 = getR2Client();
+  await r2.send(new PutObjectCommand({
+    Bucket: BUCKET,
+    Key: MANIFEST,
+    Body: JSON.stringify(tracks, null, 2),
+    ContentType: 'application/json',
+  }));
 }
 
-// Read-modify-write with optimistic locking, so concurrent edits never clobber each other.
 export async function mutateTracks(fn) {
   for (let attempt = 0; attempt < 4; attempt++) {
-    const { tracks, etag } = await readManifest();
+    const { tracks } = await readManifest();
     const next = await fn(structuredClone(tracks));
     try {
-      await writeManifest(next, etag);
+      await writeManifest(next);
       return next;
     } catch (err) {
-      if (!(err instanceof BlobPreconditionFailedError)) throw err;
+      console.error('Error mutating tracks:', err);
+      if (attempt === 3) throw err;
     }
   }
   throw new Error('Track list is busy, please retry');
 }
 
-// Shape sent to browsers: no storage paths, only short-lived signed stream links.
 export function publicTrack(t) {
   const audioExp = Date.now() + 6 * 60 * 60 * 1000;
   return {
@@ -56,24 +65,38 @@ export function youtubeId(url) {
   return m ? m[1] : null;
 }
 
-// Files in storage that no track points at (e.g. from an interrupted upload).
-// Anything newer than `graceMs` is left alone in case an upload is still being published.
 export async function storageReport(graceMs = 5 * 60 * 1000) {
   const { tracks } = await readManifest();
   const used = new Set(tracks.flatMap((t) => [t.audioPath, t.coverPath]).filter(Boolean));
-  let cursor, blobs = [];
-  do {
-    const page = await list({ cursor, limit: 1000 });
-    blobs = blobs.concat(page.blobs);
-    cursor = page.hasMore ? page.cursor : undefined;
-  } while (cursor);
+  const r2 = getR2Client();
+
+  let isTruncated = true;
+  let continuationToken = undefined;
+  let allObjects = [];
+
+  while (isTruncated) {
+    const res = await r2.send(new ListObjectsV2Command({
+      Bucket: BUCKET,
+      ContinuationToken: continuationToken,
+    }));
+    if (res.Contents) {
+      allObjects = allObjects.concat(res.Contents);
+    }
+    isTruncated = res.IsTruncated;
+    continuationToken = res.NextContinuationToken;
+  }
+
   const cutoff = Date.now() - graceMs;
-  const orphans = blobs.filter((b) =>
-    /^(audio|covers)\//.test(b.pathname) && !used.has(b.pathname) && new Date(b.uploadedAt).getTime() < cutoff);
+  const orphans = allObjects.filter((b) =>
+    /^(audio|covers)\//.test(b.Key) &&
+    !used.has(b.Key) &&
+    new Date(b.LastModified).getTime() < cutoff
+  ).map(b => ({ pathname: b.Key, size: b.Size }));
+
   return {
-    usedBytes: blobs.reduce((s, b) => s + b.size, 0),
-    fileCount: blobs.length,
+    usedBytes: allObjects.reduce((s, b) => s + (b.Size || 0), 0),
+    fileCount: allObjects.length,
     orphans,
-    orphanBytes: orphans.reduce((s, b) => s + b.size, 0),
+    orphanBytes: orphans.reduce((s, b) => s + (b.size || 0), 0),
   };
 }

@@ -9,7 +9,8 @@
     "build:vendor": "esbuild vendor-src/blob-client.js --bundle --format=esm --minify --platform=browser --outfile=vendor/blob-client.js"
   },
   "dependencies": {
-    "@vercel/blob": "2.8.0"
+    "@aws-sdk/client-s3": "^3.1152.0",
+    "@aws-sdk/s3-request-presigner": "^3.1152.0"
   },
   "devDependencies": {
     "esbuild": "^0.25.0"
